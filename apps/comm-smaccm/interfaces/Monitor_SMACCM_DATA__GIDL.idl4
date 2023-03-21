@@ -1,0 +1,11 @@
+/*
+ * Event/Data event monitor interface accepting data of type SMACCM_DATA
+ * with a queue size of 1.
+ */
+
+procedure Monitor_SMACCM_DATA__GIDL {
+    include <stdbool.h>;
+    include <smaccm_types.h>;
+    bool enqueue(refin SMACCM_DATA__GIDL_container m);
+    bool dequeue(out SMACCM_DATA__GIDL_container m);
+};

@@ -1,0 +1,45 @@
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+import "components/Server/Server.camkes";
+import "components/Decrypt/Decrypt.camkes";
+import "components/UART/UART.camkes";
+
+#define HIGHEST_PRIORITY 255
+
+assembly {
+    composition {
+        component Server server;
+        component Decrypt decrypt;
+        component UART uart;
+
+        // Decrypt => Server: Decrypted flight control data
+        connection seL4Notification Decrypt2Server_DataReady    (from decrypt.emit_Decrypt2Server_DataReadyEvent,   to server.consume_Decrypt2Server_DataReadyEvent);
+        // Decrypt <= Server: Server ACK
+        connection seL4Notification Decrypt2Server_DataReadyAck (from server.emit_Decrypt2Server_DataReadyAck,      to decrypt.consume_Decrypt2Server_DataReadyAck);
+
+        // UART => Decrypt: Encrypted data
+        connection seL4Notification UART2Decrypt_DataReady      (from uart.emit_UART2Decrypt_DataReadyEvent,        to decrypt.consume_UART2Decrypt_DataReadyEvent);
+        // UART <= Decrypt: Decrypt ACK
+        connection seL4Notification UART2Decrypt_DataReadyAck   (from decrypt.emit_UART2Decrypt_DataReadyAck,       to uart.consume_UART2Decrypt_DataReadyAck);
+
+        // Decrypt -> Server: Decrypted flight control data ready
+        connection seL4SharedData   Decrypt2Server_FC_Data      (from decrypt.send_FC_Data_Decrypt2Server,          to server.recv_FC_Data_Decrypt2Server);
+        // UART -> Decrypt: Encrypted data ready
+        connection seL4SharedData   UART2Decrypt_UART_Data      (from uart.send_UART_Data_UART2Decrypt,             to decrypt.recv_UART_Data_UART2Decrypt);
+    }
+
+    configuration {
+        server.priority     = HIGHEST_PRIORITY;
+        decrypt.priority    = HIGHEST_PRIORITY;
+        uart.priority       = HIGHEST_PRIORITY;
+
+        // Decrypt -> Server
+        server.recv_FC_Data_Decrypt2Server_access   = "R";
+        decrypt.send_FC_Data_Decrypt2Server_access  = "W";
+
+        // UART -> Decrypt
+        decrypt.recv_UART_Data_UART2Decrypt_access  = "R";
+        uart.send_UART_Data_UART2Decrypt_access     = "W";
+    }
+}

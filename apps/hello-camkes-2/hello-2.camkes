@@ -1,0 +1,56 @@
+/*
+ * CAmkES tutorial part 2: events and dataports
+ */
+
+import <std_connector.camkes>;
+
+/* import component defintions */
+import "components/Client/Client.camkes";
+import "components/Echo/Echo.camkes";
+
+assembly {
+    composition {
+        /* component instances */
+        component Client client;
+        component Echo echo;
+
+        /* TASK 5: Event connections */
+        /* hint 1: connect each "emits" interface in a component to the "consumes" interface in the other
+         * hint 2: use seL4Notification as the connector
+         * hint 3: look at https://github.com/seL4/camkes-tool/blob/master/docs/index.md#an-example-of-events
+         */
+        connection seL4Notification channel_event1(from client.emit_Client, to echo.consume_Echo);
+        connection seL4Notification channel_event2(from echo.emit_Echo, to client.consume_Client);
+
+        /* TASK 6: Dataport connections */
+        /* hint 1: connect the corresponding dataport interfaces of the components to each other
+         * hint 2: use seL4SharedData as the connector
+         * hint 3: look at https://github.com/seL4/camkes-tool/blob/master/docs/index.md#an-example-of-dataports
+         */
+        connection seL4SharedData channel_dataport1(from client.c1, to echo.e1);
+        connection seL4SharedData channel_dataport2(from echo.e2, to client.c2);
+        connection seL4SharedData channel_dataport3(from client.c3, to echo.e3);
+
+    }
+    configuration {
+        /* TASK 7: set component priorities */
+        /* hint 1: component priority is specified as an attribute with the name <component name>.priority
+         * hint 2: the highest priority is represented by 255, the lowest by 0
+         */
+        client.priority = 255;
+        echo.priority = 255;
+
+        /* TASK 8: restrict access to dataports */
+        /* hint 1: use attribute <component>.<interface_name>_access for each component and interface
+         * hint 2: appropriate values for the to_access and from_access attributes are: "R" or "W"
+         * hint 4: make the "Buf" dataport read only for the Echo component
+         * hint 3: make the "str_buf_t" dataport read only for the Client component
+         */
+        echo.e1_access = "R";
+        echo.e2_access = "RW";
+        echo.e3_access = "RW";
+        client.c1_access = "RW";
+        client.c2_access = "R";
+        client.c3_access = "RW";
+    }
+}

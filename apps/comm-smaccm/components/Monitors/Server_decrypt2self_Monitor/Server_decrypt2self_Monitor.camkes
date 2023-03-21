@@ -1,0 +1,6 @@
+import <Monitor_SMACCM_DATA__GIDL.idl4>;
+
+component Server_decrypt2self_Monitor {
+  provides Monitor_SMACCM_DATA__GIDL mon;
+  emits QueuedData monsig;
+}

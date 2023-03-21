@@ -1,0 +1,19 @@
+
+component Decrypt {
+    include <top_types.h>;
+    control;
+
+    has mutex decrypt;
+
+    // consumes Server2Decrypt_Started consume_Server2Decrypt_StartedEvent;
+    // emits Decrypt2UART_Started emit_Decrypt2UART_StartedEvent;
+
+    emits Decrypt2Server_DataReadyEvent emit_Decrypt2Server_DataReadyEvent;
+    consumes Decrypt2Server_DataReadyAck consume_Decrypt2Server_DataReadyAck;
+
+    consumes UART2Decrypt_DataReadyEvent consume_UART2Decrypt_DataReadyEvent;
+    emits UART2Decrypt_DataReadyAck emit_UART2Decrypt_DataReadyAck;
+
+    dataport FC_Data send_FC_Data_Decrypt2Server;
+    dataport UART_Data recv_UART_Data_UART2Decrypt;
+}

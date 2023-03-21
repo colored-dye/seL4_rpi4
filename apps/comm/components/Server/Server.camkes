@@ -1,0 +1,14 @@
+
+component Server {
+    include <top_types.h>;
+    control;
+
+    has mutex server;
+
+    // emits Server2Decrypt_Started emit_Server2Decrypt_StartedEvent;
+
+    consumes Decrypt2Server_DataReadyEvent consume_Decrypt2Server_DataReadyEvent;
+    emits Decrypt2Server_DataReadyAck emit_Decrypt2Server_DataReadyAck;
+
+    dataport FC_Data recv_FC_Data_Decrypt2Server;
+}

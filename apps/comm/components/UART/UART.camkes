@@ -1,0 +1,14 @@
+
+component UART {
+    include <top_types.h>;
+    control;
+
+    has mutex uart;
+
+    // consumes Decrypt2UART_Started consume_Decrypt2UART_StartedEvent;
+    
+    emits UART2Decrypt_DataReadyEvent emit_UART2Decrypt_DataReadyEvent;
+    consumes UART2Decrypt_DataReadyAck consume_UART2Decrypt_DataReadyAck;
+
+    dataport UART_Data send_UART_Data_UART2Decrypt;
+}

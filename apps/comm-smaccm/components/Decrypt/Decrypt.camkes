@@ -1,0 +1,21 @@
+import <Timer.idl4>;
+// import <tb_Monitor_SMACCM_DATA__UART_Packet_i_100.idl4>;
+
+import <Monitor_SMACCM_DATA__GIDL.idl4>;
+
+// import <SMACCM_DATA__UART_Packet_i_writer.idl4>;
+
+// import <SMACCM_DATA__GIDL_writer.idl4>;
+
+
+component Decrypt {
+    include <smaccm_types.h>;
+    control;
+    has semaphore dispatch_sem;
+
+    uses Timer timer;
+    consumes Notification timer_complete;
+    // uses tb_Monitor_SMACCM_DATA__UART_Packet_i_100 tb_uart2self;
+    // consumes QueuedData tb_uart2self_notification;
+    uses Monitor_SMACCM_DATA__GIDL self2server0;
+}

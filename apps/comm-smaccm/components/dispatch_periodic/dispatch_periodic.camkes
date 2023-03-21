@@ -1,0 +1,11 @@
+import <Timer.idl4>;
+
+component dispatch_periodic {
+    control;
+    uses Timer timer;
+    consumes Notification timer_complete;
+
+    emits Notification Server_periodic_dispatcher;
+    emits Notification Encrypt_periodic_dispatcher;
+    emits Notification Decrypt_periodic_dispatcher;
+}
