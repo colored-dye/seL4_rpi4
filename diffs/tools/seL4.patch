@@ -1,0 +1,23 @@
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' '--exclude-from=seL4/.gitignore' ../backup/tools/seL4/cmake-tool/helpers/application_settings.cmake seL4/cmake-tool/helpers/application_settings.cmake
+--- ../backup/tools/seL4/cmake-tool/helpers/application_settings.cmake	2023-03-21 20:04:04.237367336 +0800
++++ seL4/cmake-tool/helpers/application_settings.cmake	2023-03-22 14:51:53.457973570 +0800
+@@ -10,7 +10,7 @@
+ include_guard(GLOBAL)
+ 
+ function(ApplyData61ElfLoaderSettings kernel_platform kernel_sel4_arch)
+-    set(binary_list "tx1;hikey;odroidc2;odroidc4;imx8mq-evk;imx8mm-evk;hifive;tqma8xqp1gb")
++    set(binary_list "tx1;hikey;odroidc2;odroidc4;imx8mq-evk;imx8mm-evk;hifive;tqma8xqp1gb;bcm2711")
+     set(efi_list "tk1;rockpro64;quartz64")
+     set(uimage_list "tx2;am335x")
+     if(
+@@ -24,8 +24,8 @@
+     elseif(${kernel_platform} STREQUAL "bcm2837" AND ${kernel_sel4_arch} STREQUAL "aarch64")
+         set(ElfloaderImage "binary" CACHE STRING "" FORCE)
+         #rpi4
+-    elseif(${kernel_platform} STREQUAL "bcm2711" AND ${kernel_sel4_arch} STREQUAL "aarch64")
+-        set(ElfloaderImage "efi" CACHE STRING "" FORCE)
++    # elseif(${kernel_platform} STREQUAL "bcm2711" AND ${kernel_sel4_arch} STREQUAL "aarch64")
++    #     set(ElfloaderImage "efi" CACHE STRING "" FORCE)
+     elseif(${kernel_platform} IN_LIST binary_list)
+         set(ElfloaderImage "binary" CACHE STRING "" FORCE)
+     else()

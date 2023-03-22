@@ -1,0 +1,13 @@
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/global-components/components/SerialServer/include/plat/bcm2711/plat/serial.h global-components/components/SerialServer/include/plat/bcm2711/plat/serial.h
+--- ../backup/projects/global-components/components/SerialServer/include/plat/bcm2711/plat/serial.h	2023-03-21 20:07:40.521046211 +0800
++++ global-components/components/SerialServer/include/plat/bcm2711/plat/serial.h	2023-03-22 14:37:09.479380807 +0800
+@@ -28,3 +28,9 @@
+         serial_dev.generate_interrupts = 1;                  \
+         gpio_hw.mem_paddr = 0xfe200000;                      \
+         gpio_hw.mem_size = 0x1000;
++
++// #define HARDWARE_SERIAL_CONFIG                               \
++//         serial_dev.dtb = dtb({ "chosen" : "stdout-path"} );  \
++//         serial_dev.generate_interrupts = 1;                  \
++//         gpio_hw.mem_paddr = 0xfe200000;                      \
++//         gpio_hw.mem_size = 0x1000;

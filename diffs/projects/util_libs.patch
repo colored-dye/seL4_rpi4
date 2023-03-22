@@ -1,0 +1,35 @@
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h
+--- ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h	2023-03-21 20:08:37.589671025 +0800
++++ util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h	2023-03-22 16:44:04.809168084 +0800
+@@ -72,8 +72,8 @@
+ #define UART4_IRQ  153
+ #define UART5_IRQ  153
+ 
+-#define DEFAULT_SERIAL_PADDR      UART1_PADDR
+-#define DEFAULT_SERIAL_INTERRUPT  UART1_IRQ
++#define DEFAULT_SERIAL_PADDR      UART0_PADDR
++#define DEFAULT_SERIAL_INTERRUPT  UART0_IRQ
+ 
+ 
+ enum chardev_id {
+@@ -96,5 +96,5 @@
+     PS_SERIAL5 = BCM2xxx_UART5,
+ 
+     /* Defaults */
+-    PS_SERIAL_DEFAULT = BCM2xxx_UART1
++    PS_SERIAL_DEFAULT = BCM2xxx_UART0
+ };
+\ No newline at end of file
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c util_libs/libplatsupport/src/mach/bcm/pl011_uart.c
+--- ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-21 20:08:37.605671184 +0800
++++ util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-22 20:57:45.942172849 +0800
+@@ -227,7 +227,8 @@
+      *
+      */
+     // Enable FIFO
+-    //pl011_uart_enable_fifo(dev);
++    // colored-dye (2023/03/22): enable FIFO for UART5.
++    pl011_uart_enable_fifo(dev);
+ 
+     // Enable UART
+     pl011_uart_enable(dev);

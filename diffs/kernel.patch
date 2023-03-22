@@ -1,0 +1,64 @@
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude-from=kernel/.gitignore' backup/kernel/src/plat/bcm2711/overlay-rpi4.dts kernel/src/plat/bcm2711/overlay-rpi4.dts
+--- backup/kernel/src/plat/bcm2711/overlay-rpi4.dts	2023-03-21 20:07:35.692987610 +0800
++++ kernel/src/plat/bcm2711/overlay-rpi4.dts	2023-03-22 12:48:10.020889089 +0800
+@@ -9,10 +9,10 @@
+ / {
+ 	chosen {
+ 		seL4,elfloader-devices =
+-		    "serial1";
++		    "serial0";
+ 
+ 		seL4,kernel-devices =
+-		    "serial1",
++		    "serial0",
+ 		    &{/soc/interrupt-controller@40041000},
+ 		    &{/soc/local_intc@40000000},
+ 		    &{/timer};
+@@ -43,10 +43,12 @@
+ 
+ 	memory@0 {
+ 		device_type = "memory";
+-		reg = < 0x00000000 0x00000000 0x3b400000
+-			0x00000000 0x40000000 0xbc000000
+-			0x00000001 0x00000000 0x80000000
+-			0x00000001 0x80000000 0x80000000 >;
++		/* 3892MB/3.8GB */
++		/* No memory available above 0x1_0000_0000, because we only have 4GB DRAM. */
++		reg = < 0x00000000 0x00000000 0x3b400000 	/* 0x0000_0000 - 0x3b40_0000: 948MB */
++				0x00000000 0x44000000 0xb8000000	/* 0x4400_0000 - 0xfc00_0000: 2944MB */
++			/*0x00000001 0x00000000 0x80000000
++			0x00000001 0x80000000 0x80000000*/ >;
+ 	};
+ 
+ 	reserved-memory {
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude-from=kernel/.gitignore' backup/kernel/tools/dts/rpi4.dts kernel/tools/dts/rpi4.dts
+--- backup/kernel/tools/dts/rpi4.dts	2023-03-21 20:07:35.708987805 +0800
++++ kernel/tools/dts/rpi4.dts	2023-03-22 18:40:22.841397886 +0800
+@@ -21,6 +21,10 @@
+ 	aliases {
+ 		serial0 = "/soc/serial@7e201000";
+ 		serial1 = "/soc/serial@7e215040";
++		serial2 = "/soc/serial@7e201400";
++		serial3 = "/soc/serial@7e201600";
++		serial4 = "/soc/serial@7e201800";
++		serial5 = "/soc/serial@7e201a00";
+ 		emmc2bus = "/emmc2bus";
+ 		ethernet0 = "/scb/ethernet@7d580000";
+ 		pcie0 = "/scb/pcie@7d500000";
+@@ -835,11 +839,11 @@
+ 			uart-has-rtscts;
+ 			status = "okay";
+ 
+-			bluetooth {
+-				compatible = "brcm,bcm43438-bt";
+-				max-speed = <0x1e8480>;
+-				shutdown-gpios = <0x09 0x00 0x00>;
+-			};
++			// bluetooth {
++			// 	compatible = "brcm,bcm43438-bt";
++			// 	max-speed = <0x1e8480>;
++			// 	shutdown-gpios = <0x09 0x00 0x00>;
++			// };
+ 		};
+ 
+ 		mmc@7e202000 {

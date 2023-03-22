@@ -68,7 +68,7 @@ set(KernelRootCNodeSizeBits 16 CACHE STRING "")
 
 # For the tutorials that do initialize the plat support serial printing they still
 # just want to use the kernel debug putchar if it exists
-set(LibSel4PlatSupportUseDebugPutChar true CACHE BOOL "" FORCE)
+set(LibSel4PlatSupportUseDebugPutChar FALSE CACHE BOOL "" FORCE)
 
 # Just let the regular abort spin without calling DebugHalt to prevent needless
 # confusing output from the kernel for a tutorial
@@ -79,8 +79,8 @@ set(KernelNumDomains 1 CACHE STRING "" FORCE)
 
 # Export generic timer to user
 # TODO: Implement another timer and remove these two later
-set(KernelArmExportPCNTUser TRUE CACHE BOOL "" FORCE)
-set(KernelArmExportPTMRUser TRUE CACHE BOOL "" FORCE)
+# set(KernelArmExportPCNTUser TRUE CACHE BOOL "" FORCE)
+# set(KernelArmExportPTMRUser TRUE CACHE BOOL "" FORCE)
 
 # Serial output relies on Debug settings
 ApplyCommonReleaseVerificationSettings(FALSE FALSE)
