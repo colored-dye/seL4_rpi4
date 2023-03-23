@@ -9,6 +9,10 @@ static spi_bus_t *spi_bus;
 
 void pre_init() {
     LOG_ERROR("In pre_init");
+    int error;
+    error = camkes_io_ops(&io_ops);
+    ZF_LOGF_IF(error, "Failed to initialise IO ops");
+
     if (!spi_init(SPI0, &io_ops, &spi_bus)) {
         LOG_ERROR("spi_bus: %p", spi_bus);
     }
