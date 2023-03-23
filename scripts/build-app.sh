@@ -66,7 +66,7 @@ echo "Build complete"
 
 ##########################
 
-if [ $plat != "ls1046a" ]; then
+if [ $plat == "qemu-arm-virt" ]; then
     exit 0
 fi
 

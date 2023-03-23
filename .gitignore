@@ -5,3 +5,4 @@
 /projects/
 /tools/
 compile_commands.json
+.fetch-log
