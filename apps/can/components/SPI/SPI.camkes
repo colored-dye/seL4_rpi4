@@ -1,0 +1,25 @@
+component GPIOHW {
+    hardware;
+    dataport Buf(4096) mem;
+}
+
+component SPI {
+    control;
+    dataport Buf(4096) gpiohw_mem;
+    emits Dummy dummy_source;
+    consumes Dummy spi_dev;
+
+    composition {
+        component GPIOHW gpio_hw;
+
+        connection seL4DTBHardware spi_conn(from dummy_source, to spi_dev);
+        connection seL4HardwareMMIO gpio_mem(from gpiohw_mem, to gpio_hw.mem);
+    }
+
+    configuration {
+        spi_dev.dtb = dtb({ "aliases" : "spi0" });
+
+        gpio_hw.mem_paddr = 0xfe200000;
+        gpio_hw.mem_size = 0x1000;
+    }
+}

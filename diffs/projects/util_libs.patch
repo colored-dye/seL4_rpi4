@@ -1,6 +1,6 @@
 diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h
---- ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h	2023-03-21 20:08:37.589671025 +0800
-+++ util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h	2023-03-22 16:44:04.809168084 +0800
+--- ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h	2023-03-23 09:06:18.987610470 +0800
++++ util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/serial.h	2023-03-23 09:06:29.927478171 +0800
 @@ -72,8 +72,8 @@
  #define UART4_IRQ  153
  #define UART5_IRQ  153
@@ -20,9 +20,28 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
 +    PS_SERIAL_DEFAULT = BCM2xxx_UART0
  };
 \ No newline at end of file
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/spi.h util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/spi.h
+--- ../backup/projects/util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/spi.h	1970-01-01 08:00:00.000000000 +0800
++++ util_libs/libplatsupport/plat_include/bcm2711/platsupport/plat/spi.h	2023-03-23 16:30:21.139435550 +0800
+@@ -0,0 +1,15 @@
++/*
++ * Copyright 2017, Data61, CSIRO (ABN 41 687 119 230)
++ *
++ * SPDX-License-Identifier: BSD-2-Clause
++ */
++#pragma once
++
++#include <platsupport/spi.h>
++
++enum spi_id {
++    SPI0 = 0,
++    NSPI,
++};
++
++int bcm2711_spi_init(enum spi_id id, volatile void* base, mux_sys_t* mux_sys, clock_sys_t* clock_sys, spi_bus_t** ret_spi_bus);
 diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c util_libs/libplatsupport/src/mach/bcm/pl011_uart.c
---- ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-21 20:08:37.605671184 +0800
-+++ util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-22 20:57:45.942172849 +0800
+--- ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-23 09:06:19.023610040 +0800
++++ util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-23 13:39:04.317003342 +0800
 @@ -227,7 +227,8 @@
       *
       */
@@ -33,3 +52,189 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
  
      // Enable UART
      pl011_uart_enable(dev);
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/src/plat/bcm2711/spi.c util_libs/libplatsupport/src/plat/bcm2711/spi.c
+--- ../backup/projects/util_libs/libplatsupport/src/plat/bcm2711/spi.c	1970-01-01 08:00:00.000000000 +0800
++++ util_libs/libplatsupport/src/plat/bcm2711/spi.c	2023-03-23 17:02:05.739127731 +0800
+@@ -0,0 +1,182 @@
++#include "platsupport/gpio.h"
++#include "platsupport/io.h"
++#include "utils/util.h"
++#include <platsupport/spi.h>
++
++#include <platsupport/plat/spi.h>
++#include <platsupport/plat/gpio.h>
++
++#include <stdint.h>
++
++#define SPI0_PADDR 0xfe204000
++
++// GPIO -> SPI
++typedef struct spi_gpio_defn {
++    int spi_id;
++    int ce1;
++    int ce0;
++    int miso;
++    int mosi;
++    int sclk;
++    int alt_function;
++} spi_gpio_defn_t;
++
++#define SPI_GPIO_DEFN(id, ce1, ce0, miso, mosi, sclk, alt) {   \
++    .spi_id         = id,   \
++    .ce1            = ce1,  \
++    .ce0            = ce0,  \
++    .miso           = miso, \
++    .mosi           = mosi, \
++    .sclk           = sclk, \
++    .alt_function   = alt,  \
++}
++
++#if defined(CONFIG_PLAT_BCM2711)
++static const spi_gpio_defn_t gpio_defs[NSPI] = {
++    // SPI_GPIO_DEFN(SPI0, 7, 8, 9, 10, 11, BCM2711_GPIO_FSEL_ALT0)
++    {
++        SPI0, 7, 8, 9, 10, 11, BCM2711_GPIO_FSEL_ALT0,
++    },
++};
++#endif
++
++// SPI Registers
++
++/*************************
++* CS Register
++*************************/
++#define SPI_CS_LEN_LONG BIT(25)
++#define SPI_CS_DMA_LEN  BIT(24)
++#define SPI_CS_CSPOL2   BIT(23)
++#define SPI_CS_CSPOL1   BIT(22)
++#define SPI_CS_CSPOL0   BIT(21) // Chip select 0 polarity
++#define SPI_CS_RXF      BIT(20) // RX FIFO full
++#define SPI_CS_RXR      BIT(19) // RX FIFO needs reading
++#define SPI_CS_TXD      BIT(18) // TX FIFO can accept data
++#define SPI_CS_RXD      BIT(17) // RX FIFO contains data
++#define SPI_CS_DONE     BIT(16) // Transfer done
++#define SPI_CS_TE_EN    BIT(15) // UNUSED
++#define SPI_CS_LMONO    BIT(14) // UNUSED
++#define SPI_CS_LEN      BIT(13) // LoSSI enable
++#define SPI_CS_REN      BIT(12) // Read enable
++#define SPI_CS_ADCS     BIT(11) // Automatically de-assert chip select
++#define SPI_CS_INTR     BIT(10) // Interrupt on RXR
++#define SPI_CS_INTD     BIT(9)  // Interrupt on DONE
++#define SPI_CS_DMAEN    BIT(8)  // DMA enable
++#define SPI_CS_TA       BIT(7)  // Transfer active
++#define SPI_CS_OSPOL    BIT(6)  // Chip select polarity
++#define SPI_CS_CLEAR    0x30    // FIFO clear
++#define SPI_CS_CPOL     BIT(3)  // Clock polarity
++#define SPI_CS_CPHA     BIT(2)  // Clock phase
++#define SPI_CS_CS       0x3     // Chip select
++
++/*************************
++* CLK Register
++*************************/
++#define SPI_CLK_CDIV    0xff    // Clock divider. SCLK = Core Clock / CDIV
++
++/*************************
++* DLEN Register
++*************************/
++#define SPI_DLEN_LEN    0xff    // Data length. Only valid for DMA mode.
++
++/*************************
++* LTOH Register
++*************************/
++#define SPI_LTOH_TOH    0xf     // Output hold delay
++
++
++typedef volatile struct spi_regs {
++    uint32_t cs;    // master control and status
++    uint32_t fifo;  // TX and RX FIFOs. Data, RW.
++    uint32_t clk;   // clock divider
++    uint32_t dlen;  // data length
++    uint32_t ltoh;  // LoSSI mode TOH
++    uint32_t dc;    // DMA DREQ controls
++} spi_regs_t;
++
++struct spi_bus {
++    spi_regs_t* regs;
++
++    clk_t *clk;
++
++    uint8_t *txbuf, *rxbuf;
++    size_t txsize, rxsize;
++    spi_chipselect_fn cs;
++    spi_callback_fn cb;
++    void* token;
++    spi_slave_config_t *curr_slave;
++};
++
++static spi_bus_t _spi[NSPI] = {
++    [SPI0] = {
++        .regs = NULL,
++    },
++};
++
++int spi_gpio_configure(enum spi_id id, const ps_io_ops_t *io_ops) {
++    gpio_sys_t gpio_sys;
++    gpio_t gpio;
++
++    spi_gpio_defn_t pindef = { -1, -1, -1, -1, -1, -1, -1 };
++    for (int i=0; i<NSPI; i++) {
++        if (gpio_defs[i].spi_id == id) {
++            pindef = gpio_defs[i];
++            break;
++        }
++    }
++
++    if (pindef.spi_id < 0) {
++        ZF_LOGE("No valid pin configuration found for spi: %i", id);
++        return -1;
++    }
++
++    LOG_ERROR("Before gpio_sys_init");
++    int error = gpio_sys_init((ps_io_ops_t*) io_ops, &gpio_sys);
++    if (error) {
++        ZF_LOGE("GPIO sys init failed: %i", error);
++        return -1;
++    }
++    LOG_ERROR("After gpio_sys_init");
++
++#if defined(CONFIG_PLAT_BCM2711)
++    gpio_sys.init(&gpio_sys, pindef.ce1, 0, &gpio);
++    bcm2711_gpio_fsel(&gpio, pindef.alt_function);
++    gpio_sys.init(&gpio_sys, pindef.ce0, 0, &gpio);
++    bcm2711_gpio_fsel(&gpio, pindef.alt_function);
++    gpio_sys.init(&gpio_sys, pindef.miso, 0, &gpio);
++    bcm2711_gpio_fsel(&gpio, pindef.alt_function);
++    gpio_sys.init(&gpio_sys, pindef.mosi, 0, &gpio);
++    bcm2711_gpio_fsel(&gpio, pindef.alt_function);
++    gpio_sys.init(&gpio_sys, pindef.sclk, 0, &gpio);
++    bcm2711_gpio_fsel(&gpio, pindef.alt_function);
++#endif
++
++    return 0;
++}
++
++int spi_init(enum spi_id id, ps_io_ops_t *io_ops, spi_bus_t **ret_spi_bus) {
++    ZF_LOGE("In spi_init");
++    spi_bus_t *spi_bus = &_spi[id];
++
++    spi_gpio_configure(id, io_ops);
++
++    *ret_spi_bus = spi_bus;
++    return 0;
++}
++
++long spi_set_speed(spi_bus_t *spi_bus, long bps) {
++
++}
++
++void spi_handle_irq(spi_bus_t *dev) {
++
++}
++
++void spi_prepare_transfer(spi_bus_t *spi_bus, const spi_slave_config_t *cfg) {
++
++}
++
++int spi_xfer(spi_bus_t *spi_bus, const void *txdata, size_t txcnt, void *rxdata, size_t rxcnt, spi_callback_fn cb, void *token) {
++
++}

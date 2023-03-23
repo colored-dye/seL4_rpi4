@@ -1,0 +1,12 @@
+import <std_connector.camkes>;
+
+import "components/SPI/SPI.camkes";
+
+assembly {
+    composition {
+        component SPI spi;
+    }
+    configuration {
+
+    }
+}

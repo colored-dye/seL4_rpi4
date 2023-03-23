@@ -65,7 +65,7 @@ void pre_init() {
     error = camkes_io_ops(&io_ops);
     ZF_LOGF_IF(error, "Failed to initialise IO ops");
 
-    serial = ps_cdev_init(BCM2xxx_UART2, &io_ops, &serial_device);
+    serial = ps_cdev_init(BCM2xxx_UART5, &io_ops, &serial_device);
     if (serial == NULL) {
         ZF_LOGE("Failed to initialise char device");
     } else {
@@ -75,7 +75,7 @@ void pre_init() {
     ps_irq_t irq_info = {
         .type = PS_INTERRUPT,
         .irq = {
-            .number = UART2_IRQ,
+            .number = UART5_IRQ,
         }
     };
     irq_id_t serial_irq_id = ps_irq_register(&io_ops.irq_ops, irq_info, serial_irq_handle, NULL);
