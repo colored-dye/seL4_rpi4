@@ -18,6 +18,7 @@ component SPI {
 
     configuration {
         spi_dev.dtb = dtb({ "aliases" : "spi0" });
+        serial_dev.generate_interrupts = 1;
 
         gpio_hw.mem_paddr = 0xfe200000;
         gpio_hw.mem_size = 0x1000;

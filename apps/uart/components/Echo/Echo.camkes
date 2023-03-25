@@ -21,7 +21,7 @@ component Echo {
     }
 
     configuration {
-        serial_dev.dtb = dtb({ "aliases" : "serial5" });
+        serial_dev.dtb = dtb({ "aliases" : "serial0" });
         serial_dev.generate_interrupts = 1;
 
         // serial_dev2.dtb = dtb({ "aliases" : "serial5" });

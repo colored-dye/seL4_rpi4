@@ -1,6 +1,6 @@
 diff -Nur '--exclude=.git' '--exclude=.github' '--exclude-from=kernel/.gitignore' backup/kernel/src/plat/bcm2711/overlay-rpi4.dts kernel/src/plat/bcm2711/overlay-rpi4.dts
---- backup/kernel/src/plat/bcm2711/overlay-rpi4.dts	2023-03-23 09:06:04.715778250 +0800
-+++ kernel/src/plat/bcm2711/overlay-rpi4.dts	2023-03-23 09:06:28.683493365 +0800
+--- backup/kernel/src/plat/bcm2711/overlay-rpi4.dts	2023-03-21 20:07:35.692987610 +0800
++++ kernel/src/plat/bcm2711/overlay-rpi4.dts	2023-03-23 18:40:54.280362075 +0800
 @@ -9,10 +9,10 @@
  / {
  	chosen {
@@ -32,8 +32,8 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude-from=kernel/.gitignore
  
  	reserved-memory {
 diff -Nur '--exclude=.git' '--exclude=.github' '--exclude-from=kernel/.gitignore' backup/kernel/tools/dts/rpi4.dts kernel/tools/dts/rpi4.dts
---- backup/kernel/tools/dts/rpi4.dts	2023-03-23 09:06:04.759777742 +0800
-+++ kernel/tools/dts/rpi4.dts	2023-03-23 10:52:55.477529625 +0800
+--- backup/kernel/tools/dts/rpi4.dts	2023-03-21 20:07:35.708987805 +0800
++++ kernel/tools/dts/rpi4.dts	2023-03-23 18:40:54.280362075 +0800
 @@ -21,6 +21,11 @@
  	aliases {
  		serial0 = "/soc/serial@7e201000";
