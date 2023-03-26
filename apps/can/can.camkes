@@ -1,0 +1,39 @@
+import <std_connector.camkes>;
+
+import "components/spi/spi.camkes";
+import "interfaces/spi.idl4";
+
+component GPIOHW {
+    hardware;
+    dataport Buf(4096) mem;
+}
+
+component spibase {
+    hardware;
+    emits DataAvailable spi_int;
+}
+
+component can {
+    uses spi_inf spi;
+}
+
+assembly {
+    composition {
+        component GPIOHW gpio_hw;
+        component spibase spibase_inst;
+        component spi spi_inst;
+        component can can_inst;
+
+        connection seL4HardwareMMIO gpio_mem(from spi_inst.gpiohw_mem, to gpio_hw.mem);
+
+        connection seL4HardwareInterrupt spi_irq(from spibase_inst.spi_int, to spi_inst.spi_int);
+
+        connection seL4RPCCall can_spi(from can_inst.spi, to spi_inst.spi);
+    }
+    configuration {
+        gpio_hw.mem_paddr = 0xfe200000;
+        gpio_hw.mem_size = 0x1000;
+
+        spibase_inst.spi_int_irq_number = 150;
+    }
+}

@@ -1,0 +1,8 @@
+import "../../interfaces/spi.idl4";
+
+component spi {
+    control;
+    dataport Buf(4096) gpiohw_mem;
+    consumes DataAvailable spi_int;
+    provides spi_inf spi;
+}

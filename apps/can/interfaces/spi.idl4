@@ -1,0 +1,3 @@
+procedure spi_inf {
+    int transfer(in int id, in unsigned int wcount, in unsigned int rcount);
+};

@@ -1,0 +1,19 @@
+/*
+ * Copyright 2017, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+import "components/Echo/Echo.camkes";
+
+assembly {
+    composition {
+        component Echo echo;
+    }
+
+    configuration {
+    }
+}

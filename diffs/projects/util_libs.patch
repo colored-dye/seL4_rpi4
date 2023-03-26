@@ -54,8 +54,8 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
      pl011_uart_enable(dev);
 diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/src/plat/bcm2711/spi.c util_libs/libplatsupport/src/plat/bcm2711/spi.c
 --- ../backup/projects/util_libs/libplatsupport/src/plat/bcm2711/spi.c	1970-01-01 08:00:00.000000000 +0800
-+++ util_libs/libplatsupport/src/plat/bcm2711/spi.c	2023-03-25 21:23:11.953849502 +0800
-@@ -0,0 +1,332 @@
++++ util_libs/libplatsupport/src/plat/bcm2711/spi.c	2023-03-25 22:15:24.482278289 +0800
+@@ -0,0 +1,338 @@
 +#include "platsupport/gpio.h"
 +#include "platsupport/io.h"
 +#include "utils/util.h"
@@ -252,7 +252,15 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
 +    spi_bus->regs->cs &= ~SPI_CS_REN;   // Disable read
 +
 +    // Set interrupt
-+    spi_bus->regs->cs |= SPI_CS_INTD;   // Interrupt on DONE
++    // spi_bus->regs->cs |= SPI_CS_INTD;   // Interrupt on DONE
++    // ps_irq_t irq_info = {
++    //     .type = PS_INTERRUPT,
++    //     .irq = {
++    //         .number = SPI0_IRQ,
++    //     }
++    // };
++    // irq_id_t serial_irq_id = ps_irq_register(&io_ops->irq_ops, irq_info, spi_irq_handle, NULL);
++    // ZF_LOGF_IF(serial_irq_id < 0, "Failed to register irq");
 +
 +    // CLK Register
 +    spi_bus->regs->clk = (128 & SPI_CLK_CDIV); // 250MHz / CDIV = SPI speed rate
@@ -265,7 +273,7 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
 +
 +    *ret_spi_bus = spi_bus;
 +
-+    // spi_bus->regs->cs |= SPI_CS_TA;
++    spi_bus->regs->cs |= SPI_CS_TA;
 +    return 0;
 +}
 +
@@ -274,32 +282,32 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
 +}
 +
 +void spi_handle_irq(spi_bus_t *dev) {
-+    LOG_ERROR("In spi_handle_irq");
++    // LOG_ERROR("In spi_handle_irq");
 +
-+    print_spi_regs(dev->regs);
++    // print_spi_regs(dev->regs);
 +
-+    if (dev->regs->cs & SPI_CS_DONE) {
-+        for (int i=0; i<dev->txsize; i++) {
-+            dev->regs->fifo = dev->txbuf[i];
-+        }
-+    }
++    // if (dev->regs->cs & SPI_CS_DONE) {
++    //     for (int i=0; i<dev->txsize; i++) {
++    //         dev->regs->fifo = dev->txbuf[i];
++    //     }
++    // }
 +
-+    dev->regs->cs &= ~SPI_CS_TA;
++    // dev->regs->cs &= ~SPI_CS_TA;
 +
-+    while (dev->regs->cs & SPI_CS_RXD) {
-+        printf("%c ", dev->regs->fifo);
-+    }
-+    putchar('\n');
++    // while (dev->regs->cs & SPI_CS_RXD) {
++    //     printf("%c ", dev->regs->fifo);
++    // }
++    // putchar('\n');
 +
-+    print_spi_regs(dev->regs);
++    // print_spi_regs(dev->regs);
 +
-+    if (dev->regs->cs & SPI_CS_RXR) {
-+        LOG_ERROR("RXR is set");
-+    }
++    // if (dev->regs->cs & SPI_CS_RXR) {
++    //     LOG_ERROR("RXR is set");
++    // }
 +
-+    print_spi_regs(dev->regs);
++    // print_spi_regs(dev->regs);
 +
-+    LOG_ERROR("Out spi_handle_irq");
++    // LOG_ERROR("Out spi_handle_irq");
 +}
 +
 +void spi_prepare_transfer(spi_bus_t *spi_bus, const spi_slave_config_t *cfg) {
@@ -346,9 +354,7 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
 +static void spi_transfer(spi_bus_t *spi_bus) {
 +    LOG_ERROR("In spi_transfer");
 +
-+    // spi_transfer_poll(spi_bus);
-+
-+    
++    spi_transfer_poll(spi_bus);
 +
 +    LOG_ERROR("Out spi_transfer");
 +}
