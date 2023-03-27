@@ -1,0 +1,16 @@
+
+component Decrypt {
+    include <top_types.h>;
+    control;
+
+    has mutex decrypt;
+
+    consumes Telemetry2Decrypt_DataReadyEvent consume_Telemetry2Decrypt_DataReadyEvent;
+    emits Telemetry2Decrypt_DataReadyAck emit_TelemetryDecrypt_DataReadyAck;
+
+    emits Decrypt2UART_DataReadyEvent emit_Decrypt2UART_DataReadyEvent;
+    consumes Decrypt2UART_DataReadyAck consume_Decrypt2UART_DataReadyAck;
+
+    dataport Telem_Data recv_Telem_Data_Telemetry2Decrypt;
+    dataport FC_Data send_FC_Data_Decrypt2UART;    
+}

@@ -1,0 +1,79 @@
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+import "components/Telemetry/Telemetry.camkes";
+import "components/Encrypt/Encrypt.camkes";
+import "components/Decrypt/Decrypt.camkes";
+import "components/UART/UART.camkes";
+
+#define HIGHEST_PRIORITY 255
+
+assembly {
+    composition {
+        component Encrypt encrypt;
+        component Decrypt decrypt;
+        component Telemetry telemetry;
+        component UART uart;
+
+        /*******************************************************
+         * Event Notification
+         *******************************************************/
+
+        // Telemetry => Decrypt: Encrypted data
+        connection seL4Notification conn_Telemetry2Decrypt_DataReady     (from telemetry.emit_Telemetry2Decrypt_DataReadyEvent,  to decrypt.consume_Telemetry2Decrypt_DataReadyEvent);
+        // Telemetry <= Decrypt: Decrypt ACK
+        connection seL4Notification conn_Telemetry2Decrypt_DataReadyAck  (from decrypt.emit_TelemetryDecrypt_DataReadyAck,       to telemetry.consume_Telemetry2Decrypt_DataReadyAck);
+
+        // Decrypt => UART: Decrypted flight control data
+        connection seL4Notification conn_Decrypt2UART_DataReady          (from decrypt.emit_Decrypt2UART_DataReadyEvent,         to uart.consume_Decrypt2UART_DataReadyEvent);
+        // Decrypt <= UART: UART ACK
+        connection seL4Notification conn_Decrypt2UART_DataReadyAck       (from uart.emit_Decrypt2UART_DataReadyAck,              to decrypt.consume_Decrypt2UART_DataReadyAck);
+
+        // Encrypt => Telemetry: Encrypted data
+        connection seL4Notification conn_Encrypt2Telemetry_DataReady     (from encrypt.emit_Encrypt2Telemetry_DataReadyEvent,    to telemetry.consume_Encrypt2Telemetry_DataReadyEvent);
+        // Encrypt <= Telemetry: Telemetry ACK
+        connection seL4Notification conn_Encrypt2Telemetry_DataReadyAck  (from telemetry.emit_Encrypt2Telemetry_DataReadyAck,    to encrypt.consume_Encrypt2Telemetry_DataReadyAck);
+
+        // UART => Encrypt: Flight control data
+        connection seL4Notification conn_UART2Encrypt_DataReady          (from uart.emit_UART2Encrypt_DataReadyEvent,            to encrypt.consume_UART2Encrypt_DataReadyEvent);
+        // UART <= Encrypt: Encrypt ACK
+        connection seL4Notification conn_UART2Encrypt_DataReadyAck       (from encrypt.emit_UART2Encrypt_DataReadyAck,           to uart.consume_UART2Encrypt_DataReadyAck);
+
+
+        /*******************************************************
+         * Shared Dataport
+         *******************************************************/
+
+        // Telemetry -> Decrypt: Encrypted data ready
+        connection seL4SharedData   dataport_Telemetry2Decrypt_Telem_Data    (from telemetry.send_Telem_Data_Telemetry2Decrypt,     to decrypt.recv_Telem_Data_Telemetry2Decrypt);
+        // Decrypt -> UART: Decrypted flight control data ready
+        connection seL4SharedData   dataport_Decrypt2UART_FC_Data            (from decrypt.send_FC_Data_Decrypt2UART,               to uart.recv_FC_Data_Decrypt2UART);
+        // Encrypt -> Telemetry
+        connection seL4SharedData   dataport_Encrypt2Telemetry_Telem_Data    (from encrypt.send_Telem_Data_Encrypt2Telemetry,       to telemetry.recv_Telem_Data_Encrypt2Telemetry);
+        // UART -> Encrypt
+        connection seL4SharedData   dataport_UART2Encrypt_FC_Data            (from uart.send_FC_Data_UART2Encrypt,                  to encrypt.recv_FC_Data_UART2Encrypt);
+    }
+
+    configuration {
+        telemetry.priority  = HIGHEST_PRIORITY;
+        encrypt.priority    = HIGHEST_PRIORITY;
+        decrypt.priority    = HIGHEST_PRIORITY;
+        uart.priority       = HIGHEST_PRIORITY;
+
+        // Telemetry -> Decrypt
+        telemetry.send_Telem_Data_Telemetry2Decrypt_access  = "W";
+        decrypt.recv_Telem_Data_Telemetry2Decrypt_access    = "R";
+
+        // Decrypt -> UART
+        decrypt.send_FC_Data_Decrypt2UART_access    = "W";
+        uart.recv_FC_Data_Decrypt2UART_access       = "R";
+
+        // Encrypt -> Telemetry
+        encrypt.send_Telem_Data_Encrypt2Telemetry_access    = "W";
+        telemetry.recv_Telem_Data_Encrypt2Telemetry_access  = "R";
+
+        // UART -> Encrypt
+        uart.send_FC_Data_UART2Encrypt_access       = "W";
+        encrypt.recv_FC_Data_UART2Encrypt_access    = "R";
+    }
+}

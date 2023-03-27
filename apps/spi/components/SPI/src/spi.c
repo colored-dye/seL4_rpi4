@@ -7,16 +7,7 @@
 #include <string.h>
 
 static ps_io_ops_t io_ops;
-static spi_bus_t *spi_bus;
-
-static void spi_irq_handle(void *data, ps_irq_acknowledge_fn_t acknowledge_fn, void *ack_data) {
-    int error;
-
-    spi_handle_irq(spi_bus);
-
-    error = acknowledge_fn(ack_data);
-    ZF_LOGF_IF(error, "Failed to acknowledge IRQ");
-}
+static spi_bus_t *spi_bus = NULL;
 
 void pre_init() {
     LOG_ERROR("In pre_init");
@@ -30,7 +21,9 @@ void pre_init() {
 
     uint8_t txdata[] = "Wow, hello there! I am foo";
     const uint32_t txcnt = sizeof(txdata) - 1;
-    spi_xfer(spi_bus, txdata, txcnt, NULL, 0, NULL, NULL);
+    uint8_t rxdata[txcnt];
+    const uint32_t rxcnt = sizeof(rxdata);
+    spi_xfer(spi_bus, txdata, txcnt, rxdata, rxcnt, NULL, NULL);
 }
 
 int run() {

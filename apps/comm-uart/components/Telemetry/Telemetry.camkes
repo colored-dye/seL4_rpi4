@@ -1,0 +1,19 @@
+component GPIOHW {
+    
+}
+
+component Telemetry {
+    include <top_types.h>;
+    control;
+
+    has mutex telemetry;
+
+    emits Telemetry2Decrypt_DataReadyEvent emit_Telemetry2Decrypt_DataReadyEvent;
+    consumes Telemetry2Decrypt_DataReadyAck consume_Telemetry2Decrypt_DataReadyAck;
+
+    consumes Encrypt2Telemetry_DataReady consume_Encrypt2Telemetry_DataReadyEvent;
+    emits Encrypt2Telemetry_DataReadyAck emit_Encrypt2Telemetry_DataReadyAck;
+
+    dataport Telem_Data send_Telem_Data_Telemetry2Decrypt;
+    dataport Telem_Data recv_Telem_Data_Encrypt2Telemetry;
+}

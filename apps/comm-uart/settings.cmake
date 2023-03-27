@@ -1,10 +1,5 @@
-#
-# Copyright 2018, Data61, CSIRO (ABN 41 687 119 230)
-#
-# SPDX-License-Identifier: BSD-2-Clause
-#
+include_guard(GLOBAL)
 
-cmake_minimum_required(VERSION 3.7.2)
 set(project_dir "${CMAKE_CURRENT_LIST_DIR}/../..")
 file(GLOB project_modules ${project_dir}/projects/*)
 list(
@@ -71,7 +66,9 @@ endif()
 set(CapDLLoaderMaxObjects 20000 CACHE STRING "" FORCE)
 set(KernelRootCNodeSizeBits 16 CACHE STRING "")
 
-set(LibSel4PlatSupportUseDebugPutChar TRUE CACHE BOOL "" FORCE)
+# For the tutorials that do initialize the plat support serial printing they still
+# just want to use the kernel debug putchar if it exists
+set(LibSel4PlatSupportUseDebugPutChar FALSE CACHE BOOL "" FORCE)
 
 # Just let the regular abort spin without calling DebugHalt to prevent needless
 # confusing output from the kernel for a tutorial
@@ -87,21 +84,3 @@ set(KernelNumDomains 1 CACHE STRING "" FORCE)
 
 # Serial output relies on Debug settings
 ApplyCommonReleaseVerificationSettings(FALSE FALSE)
-
-project(spi C)
-
-find_package(camkes-tool REQUIRED)
-camkes_tool_setup_camkes_build_environment()
-
-# Use components in `global-components`
-find_file(GLOBAL_COMPONENTS_PATH global-components.cmake PATHS ${project_dir}/projects/global-components/ CMAKE_FIND_ROOT_PATH_BOTH)
-mark_as_advanced(FORCE GLOBAL_COMPONENTS_PATH)
-if("${GLOBAL_COMPONENTS_PATH}" STREQUAL "GLOBAL_COMPONENTS_PATH-NOTFOUND")
-    message(FATAL_ERROR "Failed to find global-components.cmake. Consider cmake -DGLOBAL_COMPONENTS_PATH=/path/to/global-components.cmake")
-endif()
-include(${GLOBAL_COMPONENTS_PATH})
-
-DeclareCAmkESComponent(SPI SOURCES components/SPI/src/spi.c)
-
-DeclareCAmkESRootserver(spi.camkes)
-GenerateCAmkESRootserver()

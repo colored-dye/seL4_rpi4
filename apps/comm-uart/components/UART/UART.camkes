@@ -1,0 +1,16 @@
+
+component UART {
+    include <top_types.h>;
+    control;
+
+    has mutex uart;
+
+    consumes Decrypt2UART_DataReadyEvent consume_Decrypt2UART_DataReadyEvent;
+    emits Decrypt2UART_DataReadyAck emit_Decrypt2UART_DataReadyAck;
+
+    emits UART2Encrypt_DataReadyEvent emit_UART2Encrypt_DataReadyEvent;
+    consumes UART2Encrypt_DataReadyAck consume_UART2Encrypt_DataReadyAck;
+
+    dataport FC_Data recv_FC_Data_Decrypt2UART;
+    dataport FC_Data send_FC_Data_UART2Encrypt;
+}
