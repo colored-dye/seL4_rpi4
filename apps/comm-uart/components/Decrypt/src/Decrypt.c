@@ -1,13 +1,10 @@
-#include "camkes-component-echo.h"
-#include "utils/attribute.h"
-#include "utils/util.h"
-#include <cstdlib>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <camkes.h>
+#include <utils/util.h>
 
 #include <top_types.h>
 
@@ -88,6 +85,7 @@ static int send_to_UART() {
     unlock();
 }
 
+// Triggered when Telemetry signals Decrypt a DataReady Event
 static void consume_Telemetry2Decrypt_DataReadyEvent_callback(void *in_arg UNUSED) {
     
     if (consume_Telemetry2Decrypt_DataReadyEvent_reg_callback(&consume_Telemetry2Decrypt_DataReadyEvent_callback, NULL)) {
@@ -95,6 +93,8 @@ static void consume_Telemetry2Decrypt_DataReadyEvent_callback(void *in_arg UNUSE
     }
 }
 
+// Decrypt sends decrypted FC data to UART
+// when UART gives Decrypt an ACK
 static void consume_Decrypt2UART_DataReadyAck_callback(void *in_arg UNUSED) {
     send_to_UART();
 

@@ -8,13 +8,13 @@
 typedef uint8_t FC_Data_raw [256];
 typedef struct FC_Data {
     FC_Data_raw raw_data;
-    int len;
+    uint32_t len;
 } FC_Data;
 
 typedef uint8_t Telem_Data_raw [256];
 typedef struct Telem_Data {
     Telem_Data_raw raw_data;
-    int len;
+    uint32_t len;
 } Telem_Data;
 
 /*

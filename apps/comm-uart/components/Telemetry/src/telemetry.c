@@ -56,7 +56,7 @@ static int telemetry_rx_poll() {
     }
     // Poll could happen when dequeueing
     lock();
-    if (enqueue(recv_queue, c)) {
+    if (enqueue(&recv_queue, c)) {
         LOG_ERROR("Receive queue full!");
     }
     unlock();
@@ -82,8 +82,8 @@ static void send_to_decrypt() {
     lock();
 
     int size;
-    if (recv_queue.size > sizeof(Telem_Data->raw_data)) {
-        size = sizeof(Telem_Data->raw_data);
+    if (recv_queue.size > sizeof(Telem_Data_raw)) {
+        size = sizeof(Telem_Data_raw);
     }
 
     Telem_Data *telem_data = (Telem_Data*) send_Telem_Data_Telemetry2Decrypt;
