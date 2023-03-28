@@ -8,12 +8,19 @@ import "components/UART/UART.camkes";
 
 #define HIGHEST_PRIORITY 255
 
+
+
 assembly {
     composition {
         component Encrypt encrypt;
         component Decrypt decrypt;
         component Telemetry telemetry;
         component UART uart;
+        
+        /*******************************************************
+         * Hardware
+         *******************************************************/
+        
 
         /*******************************************************
          * Event Notification
@@ -65,15 +72,15 @@ assembly {
         decrypt.recv_Telem_Data_Telemetry2Decrypt_access    = "R";
 
         // Decrypt -> UART
-        decrypt.send_FC_Data_Decrypt2UART_access    = "W";
-        uart.recv_FC_Data_Decrypt2UART_access       = "R";
+        decrypt.send_FC_Data_Decrypt2UART_access            = "W";
+        uart.recv_FC_Data_Decrypt2UART_access               = "R";
 
         // Encrypt -> Telemetry
         encrypt.send_Telem_Data_Encrypt2Telemetry_access    = "W";
         telemetry.recv_Telem_Data_Encrypt2Telemetry_access  = "R";
 
         // UART -> Encrypt
-        uart.send_FC_Data_UART2Encrypt_access       = "W";
-        encrypt.recv_FC_Data_UART2Encrypt_access    = "R";
+        uart.send_FC_Data_UART2Encrypt_access               = "W";
+        encrypt.recv_FC_Data_UART2Encrypt_access            = "R";
     }
 }

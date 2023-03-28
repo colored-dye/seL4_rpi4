@@ -33,6 +33,7 @@ static queue_t recv_queue;
 // From telemetry to outside world
 static queue_t send_queue;
 
+
 void pre_init() {
     LOG_ERROR("Starting Telemetry");
     LOG_ERROR("In pre_init");
@@ -67,8 +68,8 @@ static int telemetry_tx_poll() {
     lock();
 
     int size = send_queue.size;
-    char c;
-    for (int i=0; i < size; i++) {
+    uint8_t c;
+    for (uint32_t i=0; i < size; i++) {
         if (!dequeue(&send_queue, &c)) {
             ps_cdev_putchar(serial, c);
         }
@@ -88,7 +89,7 @@ static void send_to_decrypt() {
 
     Telem_Data *telem_data = (Telem_Data*) send_Telem_Data_Telemetry2Decrypt;
     uint8_t tmp;
-    for (int i=0; i<size; i++) {
+    for (uint32_t i=0; i<size; i++) {
         dequeue(&recv_queue, &tmp);
         telem_data->raw_data[i] = tmp;
         send_Telem_Data_Telemetry2Decrypt_release();

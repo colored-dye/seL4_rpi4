@@ -48,7 +48,7 @@ static void Decrypt_Telem_Data_to_FC_Data() {
         LOG_ERROR("Send queue not enough!");
     }
 
-    for (int i=0; i < recv_queue.size; i++) {
+    for (uint32_t i=0; i < recv_queue.size; i++) {
         uint8_t tmp;
         if (dequeue(&recv_queue, &tmp)) {
             break;
@@ -61,7 +61,10 @@ static void Decrypt_Telem_Data_to_FC_Data() {
     unlock();
 }
 
-static int send_to_UART() {
+// Send decrypted FC data to UART
+// through shared memory,
+// from send_queue
+static int send_to_uart(void) {
     // Protect send_queue
     lock();
 
@@ -70,23 +73,49 @@ static int send_to_UART() {
         return -1;
     }
 
-    Telem_Data *telem_data = (Telem_Data *) send_FC_Data_Decrypt2UART;
-    int size = send_queue.size;
-    for (int i=0; i < size; i++) {
+    FC_Data *fc_data = (FC_Data *) send_FC_Data_Decrypt2UART;
+    uint32_t size = send_queue.size;
+    for (uint32_t i=0; i < size; i++) {
         uint8_t tmp;
         dequeue(&send_queue, &tmp);
-        telem_data->raw_data[i] = tmp;
+        fc_data->raw_data[i] = tmp;
         send_FC_Data_Decrypt2UART_release();
     }
-    telem_data->len = size;
+    fc_data->len = size;
 
-    emit_Decrypt2UART_DataReady_emit();
+    // Decrypt => UART
+    emit_Decrypt2UART_DataReadyEvent_emit();
 
     unlock();
+
+    return 0;
+}
+
+// Read encrypted data from telemetry
+// and push to recv_queue
+static int read_from_telemetry(void) {
+    // Protect recv_queue
+    lock();
+
+    Telem_Data *telem_data = (Telem_Data *) recv_Telem_Data_Telemetry2Decrypt;
+    uint32_t size = telem_data->len;
+    for (uint32_t i = 0; i < size; i++) {
+        if (enqueue(&recv_queue, telem_data->raw_data[i])) {
+            LOG_ERROR("Receive queue full!");
+            return -1;
+        }
+    }
+
+    unlock();
+
+    return 0;
 }
 
 // Triggered when Telemetry signals Decrypt a DataReady Event
 static void consume_Telemetry2Decrypt_DataReadyEvent_callback(void *in_arg UNUSED) {
+    if (read_from_telemetry()) {
+        LOG_ERROR("Error reading from telemetry");
+    }
     
     if (consume_Telemetry2Decrypt_DataReadyEvent_reg_callback(&consume_Telemetry2Decrypt_DataReadyEvent_callback, NULL)) {
         ZF_LOGF("Failed to register Telemetry2Decrypt_DataReadyEvent callback");
@@ -96,20 +125,22 @@ static void consume_Telemetry2Decrypt_DataReadyEvent_callback(void *in_arg UNUSE
 // Decrypt sends decrypted FC data to UART
 // when UART gives Decrypt an ACK
 static void consume_Decrypt2UART_DataReadyAck_callback(void *in_arg UNUSED) {
-    send_to_UART();
+    if (send_to_uart()) {
+        LOG_ERROR("Error sending to uart");
+    }
 
     if (consume_Decrypt2UART_DataReadyAck_reg_callback(&consume_Decrypt2UART_DataReadyAck_callback, NULL)) {
         ZF_LOGF("Failed to register Decrypt2UART_DataReadyAck callback");
     }
 }
 
-void consume_Telemetry2Decrypt_DataReadyEvent__init() {
+void consume_Telemetry2Decrypt_DataReadyEvent__init(void) {
     if (consume_Telemetry2Decrypt_DataReadyEvent_reg_callback(&consume_Telemetry2Decrypt_DataReadyEvent_callback, NULL)) {
         ZF_LOGF("Failed to register Telemetry2Decrypt_DataReadyEvent callback");
     }
 }
 
-void consume_Decrypt2UART_DataReadyAck__init() {
+void consume_Decrypt2UART_DataReadyAck__init(void) {
     if (consume_Decrypt2UART_DataReadyAck_reg_callback(&consume_Decrypt2UART_DataReadyAck_callback, NULL)) {
         ZF_LOGF("Failed to register Decrypt2UART_DataReadyAck callback");
     }

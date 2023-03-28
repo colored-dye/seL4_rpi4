@@ -1,13 +1,15 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <camkes.h>
+#include <camkes/io.h>
+#include <platsupport/chardev.h>
+#include <platsupport/io.h>
+#include <utils/util.h>
 
 #include <top_types.h>
-
-static int counter = 0;
-#define MAX_UART_COUNTER 256
 
 #define lock() \
     do { \
@@ -23,61 +25,102 @@ static int counter = 0;
         } \
     } while (0)
 
-void send_to_decrypt(int i) {
-    lock();
+static ps_io_ops_t io_ops;
+static ps_chardevice_t serial_device;
+static ps_chardevice_t *serial = NULL;
 
-    sprintf((char*)send_UART_Data_UART2Decrypt->raw_data, "UART data: %03d", i);
+// From Decrypt to UART
+static queue_t recv_queue;
 
-    send_UART_Data_UART2Decrypt_release();
+// From UART to outside world
+static queue_t send_queue;
 
-    printf("[%s]: Emit data ready\n", get_instance_name());
-    emit_UART2Decrypt_DataReadyEvent_emit();
 
-    unlock();
+void pre_init() {
+    LOG_ERROR("Starting UART");
+    LOG_ERROR("In pre_init");
+
+    int error;
+    error = camkes_io_ops(&io_ops);
+    ZF_LOGF_IF(error, "Failed to initialise IO ops");
+
+    serial = ps_cdev_init(BCM2xxx_UART5, &io_ops, &serial_device);
+    ZF_LOGF_IF(!serial, "Failed to initialise char device");
+
+    queue_init(&recv_queue);
+    queue_init(&send_queue);
+
+    LOG_ERROR("Out pre_init");
 }
 
-void wait_for_input(void) {
-    while (rand() % 114514) {
-        
-    }
-}
+// UART receives data from Decrypt
+// when Decrypt gives UART a DataReady Event
+static void consume_Decrypt2UART_DataReadyEvent_callback(void *in_arg UNUSED) {
 
-void consume_UART2Decrypt_DataReadyAck_callback(void *in_arg UNUSED) {
-    int cntr;
 
-    lock();
-    cntr = counter;
-    unlock();
-
-    // Remove this later
-    if (cntr == MAX_UART_COUNTER) {
-        printf("[%s]: Stop sending to Decrypt\n", get_instance_name());
-        return;
-    }
-
-    // Pretend to wait for input
-    wait_for_input();
-
-    send_to_decrypt(cntr);
-
-    lock();
-    counter++;
-    unlock();
-
-    if (consume_UART2Decrypt_DataReadyAck_reg_callback(&consume_UART2Decrypt_DataReadyAck_callback, NULL)) {
-        printf("[%s] failed to register callback", get_instance_name());
+    if (consume_Decrypt2UART_DataReadyEvent_reg_callback(&consume_Decrypt2UART_DataReadyEvent_callback, NULL)) {
+        ZF_LOGF("Failed to register Decrypt2UART_DataReadyEvent callback");
     }
 }
 
-void consume_UART2Decrypt_DataReadyAck__init(void) {
-    if (consume_UART2Decrypt_DataReadyAck_reg_callback(&consume_UART2Decrypt_DataReadyAck_callback, NULL)) {
-        printf("[%s] failed to register callback", get_instance_name());
+static int send_to_uart(void) {
+
+    return 0;
+}
+
+// UART sends data to Encrypt
+// when Encrypt gives UART an ACK
+static void consume_UART2Encrypt_DataReadyAck_callback(void *in_arg UNUSED) {
+    if (consume_UART2Encrypt_DataReadyAck_reg_callback(&consume_UART2Encrypt_DataReadyAck_callback, NULL)) {
+        ZF_LOGF("Failed to register UART2Encrypt_DataReadyAck callback");
     }
+}
+
+void consume_Decrypt2UART_DataReadyEvent__init(void) {
+    if (consume_Decrypt2UART_DataReadyEvent_reg_callback(&consume_Decrypt2UART_DataReadyEvent_callback, NULL)) {
+        ZF_LOGF("Failed to register Decrypt2UART_DataReadyEvent callback");
+    }
+}
+
+void consume_UART2Encrypt_DataReadyAck__init(void) {
+    if (consume_UART2Encrypt_DataReadyAck_reg_callback(&consume_UART2Encrypt_DataReadyAck_callback, NULL)) {
+        ZF_LOGF("Failed to register UART2Encrypt_DataReadyAck callback");
+    }
+}
+
+static int telemetry_rx_poll(void) {
+    int c = EOF;
+    c = ps_cdev_getchar(serial);
+    if (c == EOF) {
+        return -1;
+    }
+
+    lock();
+    if (enqueue(&recv_queue, c)) {
+        LOG_ERROR("Receive queue full!");
+    }
+    unlock();
+
+    return 0;
+}
+
+static int telemetry_tx_poll(void) {
+    lock();
+
+    int size = send_queue.size;
+    uint8_t c;
+    for (uint32_t i = 0; i < size; i++) {
+        if (!dequeue(&send_queue, &c)) {
+            ps_cdev_putchar(serial, c);
+        }
+    }
+
+    unlock();
+    return 0;
 }
 
 int run(void) {
-    printf("Starting %s\n", get_instance_name());
-
+    LOG_ERROR("In run");
     while (1) {
 
     }
