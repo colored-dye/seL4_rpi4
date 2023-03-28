@@ -1,4 +1,3 @@
-#include "camkes-component-encrypt.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,12 +55,11 @@ static void Encrypt_FC_Data_to_Telem_Data() {
         if (dequeue(&recv_queue, &tmp)) {
             break;
         }
-        putchar(tmp);
+        // putchar(tmp);
         if (enqueue(&send_queue, tmp)) {
             break;
         }
     }
-    putchar('\n');
 
     unlock();
 }

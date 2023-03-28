@@ -8,8 +8,6 @@ import "components/UART/UART.camkes";
 
 #define HIGHEST_PRIORITY 255
 
-
-
 assembly {
     composition {
         component Encrypt encrypt;

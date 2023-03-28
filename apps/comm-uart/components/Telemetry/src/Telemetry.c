@@ -1,4 +1,3 @@
-#include "camkes-component-telemetry.h"
 #include <camkes.h>
 #include <camkes/io.h>
 #include <platsupport/chardev.h>
@@ -64,6 +63,9 @@ static int telemetry_rx_poll() {
         LOG_ERROR("Receive queue full!");
     }
     unlock();
+
+    LOG_ERROR("RX: %c", c);
+
     return 0;
 }
 
@@ -73,6 +75,12 @@ static int telemetry_tx_poll() {
 
     int size = send_queue.size;
     uint8_t c;
+
+    if (!queue_empty(&send_queue)) {
+        print_queue(&send_queue);
+        // print_queue_serial(&send_queue);
+    }
+
     for (uint32_t i=0; i < size; i++) {
         if (!dequeue(&send_queue, &c)) {
             ps_cdev_putchar(serial, c);
@@ -83,6 +91,7 @@ static int telemetry_tx_poll() {
     }
 
     unlock();
+
     return error;
 }
 

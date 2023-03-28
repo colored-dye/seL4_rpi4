@@ -68,7 +68,7 @@ set(KernelRootCNodeSizeBits 16 CACHE STRING "")
 
 # For the tutorials that do initialize the plat support serial printing they still
 # just want to use the kernel debug putchar if it exists
-set(LibSel4PlatSupportUseDebugPutChar FALSE CACHE BOOL "" FORCE)
+set(LibSel4PlatSupportUseDebugPutChar TRUE CACHE BOOL "" FORCE)
 
 # Just let the regular abort spin without calling DebugHalt to prevent needless
 # confusing output from the kernel for a tutorial

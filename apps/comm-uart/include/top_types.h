@@ -17,10 +17,18 @@ typedef struct Telem_Data {
     uint32_t len;
 } Telem_Data;
 
+#define serial_printf(...) do { \
+    char __str[256]; \
+    sprintf(__str, __VA_ARGS__); \
+    for (int i=0; i<sizeof(__str) && __str[i]; i++) { \
+        ps_cdev_putchar(serial, __str[i]); \
+    } \
+} while (0)
+
 /*
  * Queue
  */
-#define MAX_QUEUE_SIZE 2048
+#define MAX_QUEUE_SIZE 1024
 typedef struct queue {
     uint8_t raw_queue[MAX_QUEUE_SIZE];
     uint32_t head;
@@ -66,7 +74,7 @@ typedef struct queue {
             LOG_ERROR("Cannot dequeue"); \
             _ret = -1; \
         } else { \
-        *ret = (q)->raw_queue[(q)->head]; \
+        *(ret) = (q)->raw_queue[(q)->head]; \
         (q)->head = ((q)->head + 1) % MAX_QUEUE_SIZE; \
         (q)->size--; \
         _ret = 0; \
@@ -77,7 +85,7 @@ typedef struct queue {
 #define print_queue(q) \
     ({ \
         char _str[MAX_QUEUE_SIZE * 3 + 1]; \
-        char *_p = str; \
+        char *_p = _str; \
         LOG_ERROR("Print queue:"); \
         int size = (q)->size; \
         for (int h = (q)->head, i = 0; i < size; i++, h = (h+1) % MAX_QUEUE_SIZE) { \
@@ -85,4 +93,24 @@ typedef struct queue {
             _p += 3; \
         } \
         LOG_ERROR("%s", _str); \
+    })
+
+#define print_serial(s) { \
+    for (int i=0; s[i]; i++) { \
+        ps_cdev_putchar(serial, s[i]); \
+    } \
+}
+
+#define print_queue_serial(q) \
+    ({ \
+        char _str[MAX_QUEUE_SIZE * 3 + 1]; \
+        char *_p = _str; \
+        const char *__prompt = "Print queue:"; \
+        print_serial(__prompt); \
+        int size = (q)->size; \
+        for (int h = (q)->head, i = 0; i < size; i++, h = (h+1) % MAX_QUEUE_SIZE) { \
+            sprintf(_p, "%02X ", (q)->raw_queue[h]); \
+            _p += 3; \
+        } \
+        print_serial(_str); \
     })

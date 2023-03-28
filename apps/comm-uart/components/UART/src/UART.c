@@ -1,4 +1,3 @@
-#include "camkes-component-uart.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,7 +170,7 @@ void consume_UART2Encrypt_DataReadyAck__init(void) {
 }
 
 // Read from RX and push to recv_queue
-static int telemetry_rx_poll(void) {
+static int uart_rx_poll(void) {
     int c = EOF;
     c = ps_cdev_getchar(serial);
     if (c == EOF) {
@@ -184,13 +183,20 @@ static int telemetry_rx_poll(void) {
     }
     unlock();
 
+    LOG_ERROR("RX: %c", c);
+
     return 0;
 }
 
 // Write to TX from send_queue
-static int telemetry_tx_poll(void) {
+static int uart_tx_poll(void) {
     int error = 0;
     lock();
+
+    if (!queue_empty(&send_queue)) {
+        print_queue(&send_queue);
+        // print_queue_serial(&send_queue);
+    }
 
     int size = send_queue.size;
     uint8_t c;
@@ -199,6 +205,7 @@ static int telemetry_tx_poll(void) {
             ps_cdev_putchar(serial, c);
         } else {
             error = -1;
+            break;
         }
     }
 
@@ -212,8 +219,8 @@ int run(void) {
     emit_Decrypt2UART_DataReadyAck_emit();
 
     while (1) {
-        telemetry_rx_poll();
-        telemetry_tx_poll();
+        uart_rx_poll();
+        uart_tx_poll();
     }
     
     return 0;
