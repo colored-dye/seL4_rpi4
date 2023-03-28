@@ -1,4 +1,3 @@
-#include "camkes-component-decrypt.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,8 +38,9 @@ void pre_init() {
     LOG_ERROR("Out pre_init");
 }
 
-// Simulate decryption
-// No encryption now, so just give Telem_Data to FC_Data
+// Simulate decryption.
+// No encryption now, so just give Telem_Data to FC_Data.
+// From recv_queue to send_queue
 // TODO: Implement actual decryption
 static int Decrypt_Telem_Data_to_FC_Data() {
     int error = 0;
@@ -57,11 +57,13 @@ static int Decrypt_Telem_Data_to_FC_Data() {
             error = -1;
             break;
         }
+        putchar(tmp);
         if (enqueue(&send_queue, tmp)) {
             error = -1;
             break;
         }
     }
+    putchar('\n');
 
     unlock();
 

@@ -47,8 +47,33 @@ diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/proje
 +int bcm2711_spi_init(enum spi_id id, volatile void* base, mux_sys_t* mux_sys, clock_sys_t* clock_sys, spi_bus_t** ret_spi_bus);
 diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c util_libs/libplatsupport/src/mach/bcm/pl011_uart.c
 --- ../backup/projects/util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-23 09:06:19.023610040 +0800
-+++ util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-27 08:51:46.552926378 +0800
-@@ -227,7 +227,8 @@
++++ util_libs/libplatsupport/src/mach/bcm/pl011_uart.c	2023-03-28 11:28:06.283638477 +0800
+@@ -158,7 +158,24 @@
+ {
+     // Base UART clock according to https://github.com/raspberrypi/firmware/issues/951
+     const uint32_t freq_uart_clk = 48000000;
++    #if defined(CONFIG_PLAT_BCM2837)
+     const uint32_t baud_rate = 115200;
++    #elif defined(CONFIG_PLAT_BCM2711)
++    uint32_t baud_rate;
++    switch (dev->id) {
++        case BCM2xxx_UART0:
++        case BCM2xxx_UART1:
++            baud_rate = 115200;
++            break;
++        case BCM2xxx_UART2:
++        case BCM2xxx_UART3:
++        case BCM2xxx_UART4:
++        case BCM2xxx_UART5:
++            baud_rate = 9600;
++        default:
++            baud_rate = 9600;
++    };
++    #endif
+ 
+     double baud_div = (double) freq_uart_clk / (double)(16.0 * baud_rate);
+     double frac_div = baud_div - (uint32_t) baud_div;
+@@ -227,7 +244,8 @@
       *
       */
      // Enable FIFO

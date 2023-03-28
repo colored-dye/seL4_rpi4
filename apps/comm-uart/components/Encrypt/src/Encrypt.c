@@ -39,8 +39,9 @@ void pre_init() {
     LOG_ERROR("Out pre_init");
 }
 
-// Simulate encryption
-// No encryption now, so just give FC_Data to Telem_Data
+// Simulate encryption.
+// No encryption now, so just give FC_Data to Telem_Data.
+// From recv_queue to send_queue.
 // TODO: Implement actual encryption
 static void Encrypt_FC_Data_to_Telem_Data() {
     // Protect both recv_queue and send_queue
@@ -55,10 +56,12 @@ static void Encrypt_FC_Data_to_Telem_Data() {
         if (dequeue(&recv_queue, &tmp)) {
             break;
         }
+        putchar(tmp);
         if (enqueue(&send_queue, tmp)) {
             break;
         }
     }
+    putchar('\n');
 
     unlock();
 }
