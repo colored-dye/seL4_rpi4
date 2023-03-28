@@ -1,3 +1,4 @@
+#include "camkes-component-decrypt.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,14 +12,14 @@
 #define lock() \
     do { \
         if (decrypt_lock()) { \
-            printf("[%s] failed to lock: %d\n", get_instance_name(), __LINE__); \
+            LOG_ERROR("[%s] failed to lock\n", get_instance_name()); \
         } \
     } while (0)
 
 #define unlock() \
     do { \
         if (decrypt_unlock()) { \
-            printf("[%s] failed to unlock: %d\n", get_instance_name(), __LINE__); \
+            LOG_ERROR("[%s] failed to unlock\n", get_instance_name()); \
         } \
     } while (0)
 
@@ -41,7 +42,9 @@ void pre_init() {
 // Simulate decryption
 // No encryption now, so just give Telem_Data to FC_Data
 // TODO: Implement actual decryption
-static void Decrypt_Telem_Data_to_FC_Data() {
+static int Decrypt_Telem_Data_to_FC_Data() {
+    int error = 0;
+
     lock();
 
     if (recv_queue.size + send_queue.size > MAX_QUEUE_SIZE) {
@@ -51,64 +54,93 @@ static void Decrypt_Telem_Data_to_FC_Data() {
     for (uint32_t i=0; i < recv_queue.size; i++) {
         uint8_t tmp;
         if (dequeue(&recv_queue, &tmp)) {
+            error = -1;
             break;
         }
         if (enqueue(&send_queue, tmp)) {
+            error = -1;
             break;
         }
     }
 
     unlock();
+
+    return error;
 }
 
 // Send decrypted FC data to UART
-// through shared memory,
 // from send_queue
 static int send_to_uart(void) {
+    int error = 0;
+
+    uint32_t queue_size;
+    while (1) {
+        lock();
+        queue_size = send_queue.size;
+        unlock();
+        if (queue_size > 0) {
+            break;
+        }
+    }
+
     // Protect send_queue
     lock();
 
-    if (queue_empty(&send_queue)) {
-        unlock();
-        return -1;
-    }
-
     FC_Data *fc_data = (FC_Data *) send_FC_Data_Decrypt2UART;
-    uint32_t size = send_queue.size;
-    for (uint32_t i=0; i < size; i++) {
-        uint8_t tmp;
-        dequeue(&send_queue, &tmp);
-        fc_data->raw_data[i] = tmp;
-        send_FC_Data_Decrypt2UART_release();
-    }
-    fc_data->len = size;
+    uint32_t data_size = send_queue.size;
 
-    // Decrypt => UART
-    emit_Decrypt2UART_DataReadyEvent_emit();
+    if (data_size > sizeof(FC_Data_raw)) {
+        data_size = sizeof(FC_Data_raw);
+    }
+
+    uint8_t tmp;
+    for (uint32_t i=0; i < data_size; i++) {
+        if (!dequeue(&send_queue, &tmp)) {
+            fc_data->raw_data[i] = tmp;
+            send_FC_Data_Decrypt2UART_release();
+        } else {
+            LOG_ERROR("Should not get here");
+            error = -1;
+            data_size = 0;
+            break;
+        }
+    }
+    fc_data->len = data_size;
 
     unlock();
 
-    return 0;
+    LOG_ERROR("To uart");
+    // Decrypt => UART
+    emit_Decrypt2UART_DataReadyEvent_emit();
+
+    return error;
 }
 
 // Read encrypted data from telemetry
 // and push to recv_queue
 static int read_from_telemetry(void) {
+    int error = 0;
+    
     // Protect recv_queue
     lock();
 
+    recv_Telem_Data_Telemetry2Decrypt_acquire();
     Telem_Data *telem_data = (Telem_Data *) recv_Telem_Data_Telemetry2Decrypt;
     uint32_t size = telem_data->len;
     for (uint32_t i = 0; i < size; i++) {
         if (enqueue(&recv_queue, telem_data->raw_data[i])) {
             LOG_ERROR("Receive queue full!");
-            return -1;
+            error = -1;
+            break;
         }
     }
 
     unlock();
 
-    return 0;
+    // Tell Telemetry that data has been accepted
+    emit_Telemetry2Decrypt_DataReadyAck_emit();
+
+    return error;
 }
 
 // Triggered when Telemetry signals Decrypt a DataReady Event
@@ -148,6 +180,9 @@ void consume_Decrypt2UART_DataReadyAck__init(void) {
 
 int run(void) {
     LOG_ERROR("In run");
+
+    emit_Telemetry2Decrypt_DataReadyAck_emit();
+
     while (1) {
         Decrypt_Telem_Data_to_FC_Data();
     }

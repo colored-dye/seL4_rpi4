@@ -16,11 +16,7 @@ assembly {
         component Decrypt decrypt;
         component Telemetry telemetry;
         component UART uart;
-        
-        /*******************************************************
-         * Hardware
-         *******************************************************/
-        
+
 
         /*******************************************************
          * Event Notification
@@ -29,7 +25,7 @@ assembly {
         // Telemetry => Decrypt: Encrypted data
         connection seL4Notification conn_Telemetry2Decrypt_DataReady     (from telemetry.emit_Telemetry2Decrypt_DataReadyEvent,  to decrypt.consume_Telemetry2Decrypt_DataReadyEvent);
         // Telemetry <= Decrypt: Decrypt ACK
-        connection seL4Notification conn_Telemetry2Decrypt_DataReadyAck  (from decrypt.emit_TelemetryDecrypt_DataReadyAck,       to telemetry.consume_Telemetry2Decrypt_DataReadyAck);
+        connection seL4Notification conn_Telemetry2Decrypt_DataReadyAck  (from decrypt.emit_Telemetry2Decrypt_DataReadyAck,      to telemetry.consume_Telemetry2Decrypt_DataReadyAck);
 
         // Decrypt => UART: Decrypted flight control data
         connection seL4Notification conn_Decrypt2UART_DataReady          (from decrypt.emit_Decrypt2UART_DataReadyEvent,         to uart.consume_Decrypt2UART_DataReadyEvent);

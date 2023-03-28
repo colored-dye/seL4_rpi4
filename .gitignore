@@ -2,6 +2,7 @@
 .sel4_cache/
 /build/
 /backup/
+!/backup/firmware/
 /kernel/
 /projects/
 /tools/

@@ -1,0 +1,33 @@
+/*
+ * Copyright 2017, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+import "components/Echo/Echo.camkes";
+import "components/Echo2/Echo2.camkes";
+import "components/GPIO/GPIO.camkes";
+
+// component Empty {
+//     dataport Buf(4096) gpiohw_mem;
+// }
+
+assembly {
+    composition {
+        component Echo echo;
+        component Echo2 echo2;
+        // component GPIOHW gpio_hw;
+        // component Empty empty;
+
+        // connection seL4HardwareMMIO gpio_mem(from empty.gpiohw_mem, to gpio_hw.mem);
+        // connection seL4HardwareMMIO gpio_mem2(from echo2.gpiohw_mem, to gpio_hw.mem);
+    }
+
+    configuration {
+        // gpio_hw.mem_paddr = 0xfe200000;
+        // gpio_hw.mem_size = 4096;
+    }
+}

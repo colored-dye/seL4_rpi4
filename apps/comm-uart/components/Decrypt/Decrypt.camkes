@@ -6,7 +6,7 @@ component Decrypt {
     has mutex decrypt;
 
     consumes Telemetry2Decrypt_DataReadyEvent consume_Telemetry2Decrypt_DataReadyEvent;
-    emits Telemetry2Decrypt_DataReadyAck emit_TelemetryDecrypt_DataReadyAck;
+    emits Telemetry2Decrypt_DataReadyAck emit_Telemetry2Decrypt_DataReadyAck;
 
     emits Decrypt2UART_DataReadyEvent emit_Decrypt2UART_DataReadyEvent;
     consumes Decrypt2UART_DataReadyAck consume_Decrypt2UART_DataReadyAck;

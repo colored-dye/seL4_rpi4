@@ -1,3 +1,4 @@
+#include "camkes-component-telemetry.h"
 #include <camkes.h>
 #include <camkes/io.h>
 #include <platsupport/chardev.h>
@@ -27,10 +28,12 @@ static ps_io_ops_t io_ops;
 static ps_chardevice_t serial_device;
 static ps_chardevice_t *serial = NULL;
 
-// From telemetry to decrypt
+// From Telemetry to Decrypt
+// From outside world to Telemetry
 static queue_t recv_queue;
 
-// From telemetry to outside world
+// From Telemetry to outside world
+// From Encrypt to Telemetry
 static queue_t send_queue;
 
 
@@ -65,6 +68,7 @@ static int telemetry_rx_poll() {
 }
 
 static int telemetry_tx_poll() {
+    int error = 0;
     lock();
 
     int size = send_queue.size;
@@ -72,40 +76,69 @@ static int telemetry_tx_poll() {
     for (uint32_t i=0; i < size; i++) {
         if (!dequeue(&send_queue, &c)) {
             ps_cdev_putchar(serial, c);
+        } else {
+            unlock();
+            error = -1;
         }
     }
 
     unlock();
+    return error;
 }
 
-static void send_to_decrypt() {
-    // Protect recv_queue
-    lock();
+// Send encrypted Telem data to Decrypt
+// from recv_queue
+static int send_to_decrypt(void) {
+    int error = 0;
 
-    int size;
+    int queue_size;
+    int data_size;
+
+    // Wait for RX to push some data into recv_queue
+    while (1) {
+        lock();
+        queue_size = recv_queue.size;
+        unlock();
+        if (queue_size > 0) {
+            break;
+        }
+    }
+
+    lock();
     if (recv_queue.size > sizeof(Telem_Data_raw)) {
-        size = sizeof(Telem_Data_raw);
+        data_size = sizeof(Telem_Data_raw);
+    } else {
+        data_size = recv_queue.size;
     }
 
     Telem_Data *telem_data = (Telem_Data*) send_Telem_Data_Telemetry2Decrypt;
     uint8_t tmp;
-    for (uint32_t i=0; i<size; i++) {
-        dequeue(&recv_queue, &tmp);
-        telem_data->raw_data[i] = tmp;
-        send_Telem_Data_Telemetry2Decrypt_release();
+    for (uint32_t i=0; i < data_size; i++) {
+        if (!dequeue(&recv_queue, &tmp)) {
+            telem_data->raw_data[i] = tmp;
+            send_Telem_Data_Telemetry2Decrypt_release();
+        } else {
+            LOG_ERROR("Should not get here");
+            data_size = 0;
+            error = -1;
+        }
     }
-    telem_data->len = size;
+    telem_data->len = data_size;
     unlock();
 
     LOG_ERROR("To decrypt");
     // Telemetry => Decrypt
     emit_Telemetry2Decrypt_DataReadyEvent_emit();
+
+    return error;
 }
 
 // Telemetry sends data to Decrypt
 // when Decrypt gives Telemetry an ACK
 static void consume_Telemetry2Decrypt_DataReadyAck_callback(void *in_arg UNUSED) {
-    send_to_decrypt();
+    if (send_to_decrypt()) {
+        LOG_ERROR("Error sending to decrypt");
+    }
 
     if (consume_Telemetry2Decrypt_DataReadyAck_reg_callback(&consume_Telemetry2Decrypt_DataReadyAck_callback, NULL)) {
         ZF_LOGF("Failed to register Telemetry2Decrypt_DataReadyAck callback");
@@ -118,9 +151,11 @@ void consume_Telemetry2Decrypt_DataReadyAck__init() {
     }
 }
 
-// Telemetry receives data from Encrypt
-// when Encrypt gives Telemetry a DataReady Event
-static void consume_Encrypt2Telemetry_DataReadyEvent_callback(void *in_arg UNUSED) {
+// Read encrypted Telem data from Encrypt
+// and push to send_queue
+static int read_from_encrypt(void) {
+    int error = 0;
+
     recv_Telem_Data_Encrypt2Telemetry_acquire();
     Telem_Data *telem_data = (Telem_Data *) recv_Telem_Data_Encrypt2Telemetry;
     
@@ -130,8 +165,10 @@ static void consume_Encrypt2Telemetry_DataReadyEvent_callback(void *in_arg UNUSE
         LOG_ERROR("Send queue not enough!");
     }
 
-    for (int i=0; i < telem_data->len; i++) {
+    for (uint32_t i=0; i < telem_data->len; i++) {
         if (enqueue(&send_queue, telem_data->raw_data[i])) {
+            LOG_ERROR("Send queue full!");
+            error = -1;
             break;
         }
     }
@@ -140,6 +177,16 @@ static void consume_Encrypt2Telemetry_DataReadyEvent_callback(void *in_arg UNUSE
 
     // Tell Encrypt that data has been accepted
     emit_Encrypt2Telemetry_DataReadyAck_emit();
+
+    return error;
+}
+
+// Telemetry receives data from Encrypt
+// when Encrypt gives Telemetry a DataReady Event
+static void consume_Encrypt2Telemetry_DataReadyEvent_callback(void *in_arg UNUSED) {
+    if (read_from_encrypt()) {
+        LOG_ERROR("Error reading from encrypt");
+    }
 
     if (consume_Encrypt2Telemetry_DataReadyEvent_reg_callback(&consume_Encrypt2Telemetry_DataReadyEvent_callback, NULL)) {
         ZF_LOGF("Failed to register Encrypt2Telemetry_DataReadyEvent callback");
@@ -154,6 +201,8 @@ void consume_Encrypt2Telemetry_DataReadyEvent__init() {
 
 int run() {
     LOG_ERROR("In run");
+
+    emit_Encrypt2Telemetry_DataReadyAck_emit();
 
     while (1) {
         telemetry_rx_poll();

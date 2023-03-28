@@ -1,3 +1,4 @@
+#include "camkes-component-uart.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,14 +15,14 @@
 #define lock() \
     do { \
         if (uart_lock()) { \
-            printf("[%s] failed to lock: %d\n", get_instance_name(), __LINE__); \
+            LOG_ERROR("[%s] failed to lock\n", get_instance_name()); \
         } \
     } while (0)
 
 #define unlock() \
     do { \
         if (uart_unlock()) { \
-            printf("[%s] failed to unlock: %d\n", get_instance_name(), __LINE__); \
+            LOG_ERROR("[%s] failed to unlock\n", get_instance_name()); \
         } \
     } while (0)
 
@@ -29,9 +30,11 @@ static ps_io_ops_t io_ops;
 static ps_chardevice_t serial_device;
 static ps_chardevice_t *serial = NULL;
 
-// From Decrypt to UART
+// From UART to Encrypt,
+// From outside world to UART
 static queue_t recv_queue;
 
+// From Decrypt to UART,
 // From UART to outside world
 static queue_t send_queue;
 
@@ -53,24 +56,103 @@ void pre_init() {
     LOG_ERROR("Out pre_init");
 }
 
+// Send FC data to Encrypt
+// from recv_queue
+static int send_to_encrypt(void) {
+    int error = 0;
+
+    uint32_t queue_size;
+    uint32_t data_size;
+
+    // Wait until send_queue is not empty
+    while (1) {
+        lock();
+        queue_size = recv_queue.size;
+        unlock();
+        if (queue_size > 0) {
+            break;
+        }
+    }
+
+    lock();
+
+    data_size = recv_queue.size;
+    if (data_size > sizeof(FC_Data_raw)) {
+        data_size = sizeof(FC_Data_raw);
+    }
+    FC_Data *fc_data = (FC_Data *) send_FC_Data_UART2Encrypt;
+    uint8_t tmp;
+    for (uint32_t i = 0; i < data_size; i++) {
+        if (!dequeue(&recv_queue, &tmp)) {
+            fc_data->raw_data[i] = tmp;
+            send_FC_Data_UART2Encrypt_release();
+        } else {
+            LOG_ERROR("Should not get here");
+            data_size = 0;
+            error = -1;
+            break;
+        }
+    }
+    fc_data->len = data_size;
+
+    unlock();
+
+    LOG_ERROR("To encrypt");
+    // Tell Encrypt that data is ready
+    emit_UART2Encrypt_DataReadyEvent_emit();
+
+    return error;
+}
+
+// Read decrypted FC data from Decrypt
+// and push to send_queue
+static int read_from_decrypt(void) {
+    int error = 0;
+
+    recv_FC_Data_Decrypt2UART_acquire();
+    FC_Data *fc_data = (FC_Data *) recv_FC_Data_Decrypt2UART;
+
+    lock();
+
+    if (fc_data->len + send_queue.size > MAX_QUEUE_SIZE) {
+        LOG_ERROR("Receivce queue not enough!");
+    }
+
+    for (uint32_t i = 0; i < fc_data->len; i++) {
+        if (enqueue(&send_queue, fc_data->raw_data[i])) {
+            LOG_ERROR("Receive queue full!");
+            error = -1;
+            break;
+        }
+    }
+
+    unlock();
+
+    // Tell Decrypt that data has been accepted
+    emit_Decrypt2UART_DataReadyAck_emit();
+
+    return error;
+}
+
 // UART receives data from Decrypt
 // when Decrypt gives UART a DataReady Event
 static void consume_Decrypt2UART_DataReadyEvent_callback(void *in_arg UNUSED) {
-
+    if (read_from_decrypt()) {
+        LOG_ERROR("Error reading from decrypt");
+    }
 
     if (consume_Decrypt2UART_DataReadyEvent_reg_callback(&consume_Decrypt2UART_DataReadyEvent_callback, NULL)) {
         ZF_LOGF("Failed to register Decrypt2UART_DataReadyEvent callback");
     }
 }
 
-static int send_to_uart(void) {
-
-    return 0;
-}
-
 // UART sends data to Encrypt
 // when Encrypt gives UART an ACK
 static void consume_UART2Encrypt_DataReadyAck_callback(void *in_arg UNUSED) {
+    if (send_to_encrypt()) {
+        LOG_ERROR("Error sending to encrypt");
+    }
+
     if (consume_UART2Encrypt_DataReadyAck_reg_callback(&consume_UART2Encrypt_DataReadyAck_callback, NULL)) {
         ZF_LOGF("Failed to register UART2Encrypt_DataReadyAck callback");
     }
@@ -88,6 +170,7 @@ void consume_UART2Encrypt_DataReadyAck__init(void) {
     }
 }
 
+// Read from RX and push to recv_queue
 static int telemetry_rx_poll(void) {
     int c = EOF;
     c = ps_cdev_getchar(serial);
@@ -104,7 +187,9 @@ static int telemetry_rx_poll(void) {
     return 0;
 }
 
+// Write to TX from send_queue
 static int telemetry_tx_poll(void) {
+    int error = 0;
     lock();
 
     int size = send_queue.size;
@@ -112,17 +197,23 @@ static int telemetry_tx_poll(void) {
     for (uint32_t i = 0; i < size; i++) {
         if (!dequeue(&send_queue, &c)) {
             ps_cdev_putchar(serial, c);
+        } else {
+            error = -1;
         }
     }
 
     unlock();
-    return 0;
+    return error;
 }
 
 int run(void) {
     LOG_ERROR("In run");
-    while (1) {
 
+    emit_Decrypt2UART_DataReadyAck_emit();
+
+    while (1) {
+        telemetry_rx_poll();
+        telemetry_tx_poll();
     }
     
     return 0;

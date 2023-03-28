@@ -1,0 +1,22 @@
+import "../GPIO/GPIO.camkes";
+
+component Echo2 {
+    control;
+    dataport Buf(4096) gpiohw_mem;
+    emits Dummy dummy_source;
+    consumes Dummy serial_dev;
+
+    composition {
+        component GPIOHW gpio_hw;
+
+        connection seL4DTBHardware serial_conn(from dummy_source, to serial_dev);
+        connection seL4HardwareMMIO gpio_mem(from gpiohw_mem, to gpio_hw.mem);
+    }
+
+    configuration {
+        serial_dev.dtb = dtb({ "aliases" : "serial5" });
+
+        gpio_hw.mem_paddr = 0xfe200000;
+        gpio_hw.mem_size = 4096;
+    }
+}

@@ -1,0 +1,15 @@
+diff -Nur '--exclude=.git' '--exclude=.github' '--exclude=*.pyc' ../backup/projects/sel4-tutorials/settings.cmake sel4-tutorials/settings.cmake
+--- ../backup/projects/sel4-tutorials/settings.cmake	2023-03-23 09:06:17.683626030 +0800
++++ sel4-tutorials/settings.cmake	2023-03-28 10:49:42.207462542 +0800
+@@ -57,6 +57,11 @@
+     set(KernelSel4Arch "aarch32" CACHE STRING "" FORCE)
+     set(KernelPlatform "zynq7000" CACHE STRING "" FORCE)
+     ApplyData61ElfLoaderSettings(${KernelPlatform} ${KernelSel4Arch})
++elseif(${TUT_BOARD} STREQUAL "rpi4")
++    set(KernelArch "arm" CACHE STRING "" FORCE)
++    set(KernelSel4Arch "aarch64" CACHE STRING "" FORCE)
++    set(KernelPlatform "bcm2711" CACHE STRING "" FORCE)
++    ApplyData61ElfLoaderSettings(${KernelPlatform} ${KernelSel4Arch})
+ else()
+     message(FATAL_ERROR "Unsupported board ${TUT_BOARD}.")
+ endif()
